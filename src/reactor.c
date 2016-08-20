@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <sys/eventfd.h>
 #include <sys/select.h>
+#include <stdio.h>
 
 #include "list.h"
 #include "reactor.h"

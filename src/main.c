@@ -2,6 +2,7 @@
 #include <thread.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 typedef struct
 {

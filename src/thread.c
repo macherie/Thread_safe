@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <unistd.h> 
+#include <stdio.h>
 
 #include "fixed_queue.h"
 #include "reactor.h"
