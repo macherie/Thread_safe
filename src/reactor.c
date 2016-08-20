@@ -24,6 +24,9 @@
 #include <sys/eventfd.h>
 #include <sys/select.h>
 #include <stdio.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
 
 #include "list.h"
 #include "reactor.h"

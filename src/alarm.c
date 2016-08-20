@@ -24,6 +24,9 @@
 #include <inttypes.h>
 #include <time.h>
 #include <signal.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <string.h>
 
 #include "alarm.h"
 #include "list.h"
