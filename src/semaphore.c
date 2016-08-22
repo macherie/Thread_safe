@@ -34,70 +34,70 @@
 #endif
 
 struct semaphore_t {
-  int fd;
+	int fd;
 };
 
 semaphore_t *semaphore_new(unsigned int value) {
-  semaphore_t *ret = malloc(sizeof(semaphore_t));
-  if (ret) {
-    ret->fd = eventfd(value, EFD_SEMAPHORE);
-    if (ret->fd == -1) {
-      printf("%s unable to allocate semaphore: %s", __func__, strerror(errno));
-      free(ret);
-      ret = NULL;
-    }
-  }
-  return ret;
+	semaphore_t *ret = malloc(sizeof(semaphore_t));
+	if (ret) {
+		ret->fd = eventfd(value, EFD_SEMAPHORE);
+		if (ret->fd == -1) {
+			printf("%s unable to allocate semaphore: %s", __func__, strerror(errno));
+			free(ret);
+			ret = NULL;
+		}
+	}
+	return ret;
 }
 
 void semaphore_free(semaphore_t *semaphore) {
-  if (semaphore->fd != -1)
-    close(semaphore->fd);
-  free(semaphore);
+	if (semaphore->fd != -1)
+		close(semaphore->fd);
+	free(semaphore);
 }
 
 void semaphore_wait(semaphore_t *semaphore) {
-  assert(semaphore != NULL);
-  assert(semaphore->fd != -1);
+	assert(semaphore != NULL);
+	assert(semaphore->fd != -1);
 
-  uint64_t value;
-  if (eventfd_read(semaphore->fd, &value) == -1)
-    printf("%s unable to wait on semaphore: %s", __func__, strerror(errno));
+	uint64_t value;
+	if (eventfd_read(semaphore->fd, &value) == -1)
+		printf("%s unable to wait on semaphore: %s", __func__, strerror(errno));
 }
 
 bool semaphore_try_wait(semaphore_t *semaphore) {
-  assert(semaphore != NULL);
-  assert(semaphore->fd != -1);
+	assert(semaphore != NULL);
+	assert(semaphore->fd != -1);
 
-  int flags = fcntl(semaphore->fd, F_GETFL);
-  if (flags == -1) {
-    printf("%s unable to get flags for semaphore fd: %s", __func__, strerror(errno));
-    return false;
-  }
-  if (fcntl(semaphore->fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-    printf("%s unable to set O_NONBLOCK for semaphore fd: %s", __func__, strerror(errno));
-    return false;
-  }
+	int flags = fcntl(semaphore->fd, F_GETFL);
+	if (flags == -1) {
+		printf("%s unable to get flags for semaphore fd: %s", __func__, strerror(errno));
+		return false;
+	}
+	if (fcntl(semaphore->fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+		printf("%s unable to set O_NONBLOCK for semaphore fd: %s", __func__, strerror(errno));
+		return false;
+	}
 
-  eventfd_t value;
-  if (eventfd_read(semaphore->fd, &value) == -1)
-    return false;
+	eventfd_t value;
+	if (eventfd_read(semaphore->fd, &value) == -1)
+		return false;
 
-  if (fcntl(semaphore->fd, F_SETFL, flags) == -1)
-    printf("%s unable to resetore flags for semaphore fd: %s", __func__, strerror(errno));
-  return true;
+	if (fcntl(semaphore->fd, F_SETFL, flags) == -1)
+		printf("%s unable to resetore flags for semaphore fd: %s", __func__, strerror(errno));
+	return true;
 }
 
 void semaphore_post(semaphore_t *semaphore) {
-  assert(semaphore != NULL);
-  assert(semaphore->fd != -1);
+	assert(semaphore != NULL);
+	assert(semaphore->fd != -1);
 
-  if (eventfd_write(semaphore->fd, 1ULL) == -1)
-    printf("%s unable to post to semaphore: %s", __func__, strerror(errno));
+	if (eventfd_write(semaphore->fd, 1ULL) == -1)
+		printf("%s unable to post to semaphore: %s", __func__, strerror(errno));
 }
 
 int semaphore_get_fd(const semaphore_t *semaphore) {
-  assert(semaphore != NULL);
-  assert(semaphore->fd != -1);
-  return semaphore->fd;
+	assert(semaphore != NULL);
+	assert(semaphore->fd != -1);
+	return semaphore->fd;
 }

@@ -36,83 +36,83 @@
 #endif
 
 struct reactor_t {
-  int event_fd;
-  list_t *objects;
+	int event_fd;
+	list_t *objects;
 };
 
 static reactor_status_t run_reactor(reactor_t *reactor, int iterations, struct timeval *tv);
 
 reactor_t *reactor_new(void) {
-  reactor_t *ret = (reactor_t *)calloc(1, sizeof(reactor_t));
-  if (!ret)
-    return NULL;
+	reactor_t *ret = (reactor_t *)calloc(1, sizeof(reactor_t));
+	if (!ret)
+		return NULL;
 
-  ret->event_fd = eventfd(0, EFD_SEMAPHORE);
-  if (ret->event_fd == -1) {
-    printf("%s unable to create eventfd: %s", __func__, strerror(errno));
-    goto error;
-  }
+	ret->event_fd = eventfd(0, EFD_SEMAPHORE);
+	if (ret->event_fd == -1) {
+		printf("%s unable to create eventfd: %s", __func__, strerror(errno));
+		goto error;
+	}
 
-  ret->objects = list_new(NULL);
-  if (!ret->objects)
-    goto error;
+	ret->objects = list_new(NULL);
+	if (!ret->objects)
+		goto error;
 
-  return ret;
+	return ret;
 
 error:;
-  list_free(ret->objects);
-  close(ret->event_fd);
-  free(ret);
-  return NULL;
+	  list_free(ret->objects);
+	  close(ret->event_fd);
+	  free(ret);
+	  return NULL;
 }
 
 void reactor_free(reactor_t *reactor) {
-  if (!reactor)
-    return;
+	if (!reactor)
+		return;
 
-  list_free(reactor->objects);
-  close(reactor->event_fd);
-  free(reactor);
+	list_free(reactor->objects);
+	close(reactor->event_fd);
+	free(reactor);
 }
 
 reactor_status_t reactor_start(reactor_t *reactor) {
-  assert(reactor != NULL);
-  return run_reactor(reactor, 0, NULL);
+	assert(reactor != NULL);
+	return run_reactor(reactor, 0, NULL);
 }
 
 reactor_status_t reactor_run_once(reactor_t *reactor) {
-  assert(reactor != NULL);
-  return run_reactor(reactor, 1, NULL);
+	assert(reactor != NULL);
+	return run_reactor(reactor, 1, NULL);
 }
 
 reactor_status_t reactor_run_once_timeout(reactor_t *reactor, timeout_t timeout_ms) {
-  assert(reactor != NULL);
+	assert(reactor != NULL);
 
-  struct timeval tv;
-  tv.tv_sec = timeout_ms / 1000;
-  tv.tv_usec = (timeout_ms % 1000) * 1000;
-  return run_reactor(reactor, 1, &tv);
+	struct timeval tv;
+	tv.tv_sec = timeout_ms / 1000;
+	tv.tv_usec = (timeout_ms % 1000) * 1000;
+	return run_reactor(reactor, 1, &tv);
 }
 
 void reactor_stop(reactor_t *reactor) {
-  assert(reactor != NULL);
+	assert(reactor != NULL);
 
-  eventfd_write(reactor->event_fd, 1);
+	eventfd_write(reactor->event_fd, 1);
 }
 
 void reactor_register(reactor_t *reactor, reactor_object_t *obj) {
-  assert(reactor != NULL);
-  assert(obj != NULL);
+	assert(reactor != NULL);
+	assert(obj != NULL);
 
-  printf("444\n");
-  list_append(reactor->objects, obj);
+	printf("444\n");
+	list_append(reactor->objects, obj);
 }
 
 void reactor_unregister(reactor_t *reactor, reactor_object_t *obj) {
-  assert(reactor != NULL);
-  assert(obj != NULL);
+	assert(reactor != NULL);
+	assert(obj != NULL);
 
-  list_remove(reactor->objects, obj);
+	list_remove(reactor->objects, obj);
 }
 
 // Runs the reactor loop for a maximum of |iterations| with the given timeout, |tv|.
@@ -120,59 +120,59 @@ void reactor_unregister(reactor_t *reactor, reactor_object_t *obj) {
 // NULL |tv| means no timeout (block until an event occurs).
 // |reactor| may not be NULL.
 static reactor_status_t run_reactor(reactor_t *reactor, int iterations, struct timeval *tv) {
-  assert(reactor != NULL);
+	assert(reactor != NULL);
 
-  for (int i = 0; iterations == 0 || i < iterations; ++i) {
-    fd_set read_set;
-    fd_set write_set;
-    FD_ZERO(&read_set);
-    FD_ZERO(&write_set);
-    FD_SET(reactor->event_fd, &read_set);
+	for (int i = 0; iterations == 0 || i < iterations; ++i) {
+		fd_set read_set;
+		fd_set write_set;
+		FD_ZERO(&read_set);
+		FD_ZERO(&write_set);
+		FD_SET(reactor->event_fd, &read_set);
 
-    int max_fd = reactor->event_fd;
-    for (const list_node_t *iter = list_begin(reactor->objects); iter != list_end(reactor->objects); iter = list_next(iter)) {
-      reactor_object_t *object = (reactor_object_t *)list_node(iter);
-      int fd = object->fd;
-      reactor_interest_t interest = object->interest;
-      if (interest & REACTOR_INTEREST_READ)
-        FD_SET(fd, &read_set);
-      if (interest & REACTOR_INTEREST_WRITE)
-        FD_SET(fd, &write_set);
-      if (fd > max_fd)
-        max_fd = fd;
-    }
+		int max_fd = reactor->event_fd;
+		for (const list_node_t *iter = list_begin(reactor->objects); iter != list_end(reactor->objects); iter = list_next(iter)) {
+			reactor_object_t *object = (reactor_object_t *)list_node(iter);
+			int fd = object->fd;
+			reactor_interest_t interest = object->interest;
+			if (interest & REACTOR_INTEREST_READ)
+				FD_SET(fd, &read_set);
+			if (interest & REACTOR_INTEREST_WRITE)
+				FD_SET(fd, &write_set);
+			if (fd > max_fd)
+				max_fd = fd;
+		}
 
-    int ret;
-    do {
-      ret = select(max_fd + 1, &read_set, &write_set, NULL, tv);
-    } while (ret == -1 && errno == EINTR);
+		int ret;
+		do {
+			ret = select(max_fd + 1, &read_set, &write_set, NULL, tv);
+		} while (ret == -1 && errno == EINTR);
 
-    if (ret == -1) {
-      printf("%s error in select: %s", __func__, strerror(errno));
-      return REACTOR_STATUS_ERROR;
-    }
+		if (ret == -1) {
+			printf("%s error in select: %s", __func__, strerror(errno));
+			return REACTOR_STATUS_ERROR;
+		}
 
-    if (ret == 0)
-      return REACTOR_STATUS_TIMEOUT;
+		if (ret == 0)
+			return REACTOR_STATUS_TIMEOUT;
 
-    if (FD_ISSET(reactor->event_fd, &read_set)) {
-      eventfd_t value;
-      eventfd_read(reactor->event_fd, &value);
-      return REACTOR_STATUS_STOP;
-    }
+		if (FD_ISSET(reactor->event_fd, &read_set)) {
+			eventfd_t value;
+			eventfd_read(reactor->event_fd, &value);
+			return REACTOR_STATUS_STOP;
+		}
 
-    for (const list_node_t *iter = list_begin(reactor->objects); ret > 0 && iter != list_end(reactor->objects); iter = list_next(iter)) {
-      reactor_object_t *object = (reactor_object_t *)list_node(iter);
-      int fd = object->fd;
-      if (FD_ISSET(fd, &read_set)) {
-        object->read_ready(object->context);
-        --ret;
-      }
-      if (FD_ISSET(fd, &write_set)) {
-        object->write_ready(object->context);
-        --ret;
-      }
-    }
-  }
-  return REACTOR_STATUS_DONE;
+		for (const list_node_t *iter = list_begin(reactor->objects); ret > 0 && iter != list_end(reactor->objects); iter = list_next(iter)) {
+			reactor_object_t *object = (reactor_object_t *)list_node(iter);
+			int fd = object->fd;
+			if (FD_ISSET(fd, &read_set)) {
+				object->read_ready(object->context);
+				--ret;
+			}
+			if (FD_ISSET(fd, &write_set)) {
+				object->write_ready(object->context);
+				--ret;
+			}
+		}
+	}
+	return REACTOR_STATUS_DONE;
 }
