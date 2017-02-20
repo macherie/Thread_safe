@@ -19,9 +19,20 @@
 #pragma once
 
 #include <stdbool.h>
+#include "fixed_queue.h"
+#include "list.h"
+#include "osi.h"
+#include "semaphore.h"
+
 
 struct fixed_queue_t;
-typedef struct fixed_queue_t fixed_queue_t;
+typedef struct fixed_queue_t {
+	list_t *list;
+	semaphore_t *enqueue_sem;
+	semaphore_t *dequeue_sem;
+	pthread_mutex_t lock;
+	size_t capacity;
+} fixed_queue_t;
 
 typedef void (*fixed_queue_free_cb)(void *data);
 
